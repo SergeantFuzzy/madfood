@@ -1,10 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { addMonths, format, getMonth, getYear, startOfMonth, subMonths } from "date-fns";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { Modal } from "../../components/ui/Modal";
 import { Recipe, WeeklyPlan } from "../../lib/dbTypes";
+import { addMonths, format, getMonth, getYear, startOfMonth, subMonths } from "../../lib/date";
 import { listRecipes } from "../recipes/recipesService";
 import { CalendarMonth } from "./calendar/CalendarMonth";
 import { listPlansForMonth, savePlanForDay } from "./plannerService";

@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { WeeklyPlan } from "../../../lib/dbTypes";
+import { format } from "../../../lib/date";
 import { buildMonthGrid, weekdayLabels } from "./calendarUtils";
 
 interface CalendarMonthProps {

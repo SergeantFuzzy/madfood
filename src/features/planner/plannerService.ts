@@ -1,5 +1,5 @@
-import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
 import { WeeklyPlan } from "../../lib/dbTypes";
+import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "../../lib/date";
 import { supabase } from "../../lib/supabaseClient";
 
 export const listPlansForMonth = async (monthDate: Date): Promise<WeeklyPlan[]> => {
