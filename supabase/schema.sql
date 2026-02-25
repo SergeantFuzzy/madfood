@@ -322,8 +322,6 @@ insert into storage.buckets (id, name, public)
 values ('recipe-images', 'recipe-images', true)
 on conflict (id) do nothing;
 
-alter table storage.objects enable row level security;
-
 drop policy if exists "Recipe images public read" on storage.objects;
 create policy "Recipe images public read"
 on storage.objects for select
