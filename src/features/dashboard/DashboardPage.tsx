@@ -42,6 +42,16 @@ export const DashboardPage = () => {
 
   return (
     <div className="container stack">
+      <Card>
+        <div className="section-head mb-05">
+          <h2>Daily inspiration</h2>
+          <span className="badge">Today</span>
+        </div>
+        <p className="muted mb-05">{today.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
+        <p className="motivation-quote">"{dailyMotivation.quote}"</p>
+        <p className="motivation-statement">{dailyMotivation.encouragement}</p>
+      </Card>
+
       <div className="page-header">
         <h1 className="page-title">{displayName ? `Welcome back, ${displayName}` : "Welcome back"}</h1>
         <p className="page-subtitle">Track this week and jump quickly into your workflow.</p>
@@ -55,16 +65,6 @@ export const DashboardPage = () => {
         {loading ? <Loading label="Loading weekly summary..." /> : null}
         {error ? <p className="error-text">{error}</p> : null}
         {!loading && !error ? <p>{plannedDays} day(s) currently planned.</p> : null}
-      </Card>
-
-      <Card>
-        <div className="section-head mb-05">
-          <h2>Daily inspiration</h2>
-          <span className="badge">Today</span>
-        </div>
-        <p className="muted mb-05">{today.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
-        <p className="motivation-quote">"{dailyMotivation.quote}"</p>
-        <p className="motivation-statement">{dailyMotivation.encouragement}</p>
       </Card>
 
       <div className="grid-3">
