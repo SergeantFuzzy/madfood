@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
+  displayName: string | null;
   loading: boolean;
 }
 
@@ -12,6 +13,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,13 +41,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadDisplayName = async (userId: string) => {
+      const { data, error } = await supabase.from("profiles").select("display_name").eq("id", userId).maybeSingle();
+      if (!active) return;
+
+      if (error) {
+        setDisplayName(null);
+        return;
+      }
+
+      setDisplayName(data?.display_name?.trim() || null);
+    };
+
+    if (!session?.user) {
+      setDisplayName(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    loadDisplayName(session.user.id);
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
       user: session?.user ?? null,
+      displayName,
       loading
     }),
-    [loading, session]
+    [displayName, loading, session]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

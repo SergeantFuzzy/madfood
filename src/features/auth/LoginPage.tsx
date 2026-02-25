@@ -9,7 +9,7 @@ import { useAuth } from "./AuthContext";
 import { signInWithEmail, signUpWithEmail } from "./authService";
 
 export const LoginPage = () => {
-  const { user } = useAuth();
+  const { displayName, user } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +20,11 @@ export const LoginPage = () => {
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const greetingTitle = displayName ? `Welcome back, ${displayName}` : "Welcome to MadFood";
+  const greetingSubtitle = displayName
+    ? "Sign in to continue your meals, recipes, and shopping lists."
+    : "Meal planning, recipes, and shopping lists in one place.";
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -47,8 +52,8 @@ export const LoginPage = () => {
   return (
     <div className="container">
       <div className="page-header">
-        <h1 className="page-title">Welcome to MadFood</h1>
-        <p className="page-subtitle">Meal planning, recipes, and shopping lists in one place.</p>
+        <h1 className="page-title">{greetingTitle}</h1>
+        <p className="page-subtitle">{greetingSubtitle}</p>
       </div>
       {!isSupabaseConfigured ? (
         <Card className="mb-1">

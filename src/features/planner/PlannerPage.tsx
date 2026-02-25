@@ -32,6 +32,11 @@ export const PlannerPage = () => {
     }, {});
   }, [plans]);
 
+  const plannedDaysCount = useMemo(
+    () => plans.filter((item) => Boolean(item.meal_name) || Boolean(item.recipe_id)).length,
+    [plans]
+  );
+
   const refreshData = async () => {
     setLoading(true);
     setError(null);
@@ -62,6 +67,11 @@ export const PlannerPage = () => {
 
   const closeDayModal = () => {
     setSelectedDate(null);
+    setSelectedRecipeId("");
+    setMealName("");
+  };
+
+  const clearSelectedDayValues = () => {
     setSelectedRecipeId("");
     setMealName("");
   };
@@ -123,6 +133,9 @@ export const PlannerPage = () => {
               Previous
             </Button>
             <h2>{format(monthDate, "MMMM yyyy")}</h2>
+            <span className="badge">
+              {plannedDaysCount} planned day{plannedDaysCount === 1 ? "" : "s"}
+            </span>
             <Button variant="secondary" onClick={() => setMonthDate((prev) => addMonths(prev, 1))}>
               Next
             </Button>
@@ -153,6 +166,8 @@ export const PlannerPage = () => {
           </div>
         </div>
 
+        <p className="muted mb-05">Tap a day to add, edit, or clear your meal plan.</p>
+
         {loading ? <Loading label="Loading calendar..." /> : null}
         {error ? <p className="error-text">{error}</p> : null}
         {!loading ? <CalendarMonth monthDate={monthDate} plansByDate={plansByDate} onSelectDay={openDayModal} /> : null}
@@ -166,6 +181,9 @@ export const PlannerPage = () => {
           <>
             <Button variant="secondary" onClick={closeDayModal} type="button">
               Cancel
+            </Button>
+            <Button variant="secondary" onClick={clearSelectedDayValues} type="button">
+              Clear fields
             </Button>
             <Button loading={saving} type="submit" form="save-day-form">
               Save day

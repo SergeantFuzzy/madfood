@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { CalendarDays, ListChecks, Utensils } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
+import { useAuth } from "../auth/AuthContext";
 import { getPlannedDaysThisWeek } from "../planner/plannerService";
 
 export const DashboardPage = () => {
+  const { displayName } = useAuth();
   const [plannedDays, setPlannedDays] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export const DashboardPage = () => {
   return (
     <div className="container stack">
       <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
+        <h1 className="page-title">{displayName ? `Welcome back, ${displayName}` : "Welcome back"}</h1>
         <p className="page-subtitle">Track this week and jump quickly into your workflow.</p>
       </div>
 

@@ -153,7 +153,7 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
 
               <label className="field">
                 <span className="field-label">Unit</span>
-                <div className="inline-row nowrap">
+                <div className="inline-row">
                   <input
                     className="input"
                     value={ingredient.unit}

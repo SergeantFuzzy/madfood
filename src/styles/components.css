@@ -1,5 +1,6 @@
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -10,7 +11,8 @@
 }
 
 .content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.5rem 0 2rem;
 }
 
@@ -88,9 +90,17 @@
   background: #fff;
 }
 
+.footer .container {
+  display: flex;
+  justify-content: center;
+}
+
 .footer-text {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  text-align: center;
   gap: 0.35rem;
   color: var(--muted);
 }
@@ -421,6 +431,11 @@
   gap: 0.5rem;
 }
 
+.calendar-desktop {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .calendar-weekdays,
 .calendar-grid {
   display: grid;
@@ -478,9 +493,62 @@
   color: #8b4a56;
   font-size: 0.76rem;
   padding: 0.2rem 0.35rem;
-  white-space: nowrap;
+  line-height: 1.25;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.calendar-mobile-list {
+  display: none;
+  gap: 0.6rem;
+}
+
+.calendar-mobile-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  text-align: left;
+  padding: 0.65rem 0.72rem;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.calendar-mobile-row-filled {
+  border-color: #e8d5d8;
+}
+
+.calendar-mobile-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.calendar-mobile-date {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.calendar-mobile-today {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1;
+  background: #f8ecee;
+  color: #8b4a56;
+  padding: 0.25rem 0.45rem;
+}
+
+.calendar-mobile-meal {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.calendar-mobile-meal-filled {
+  color: #8b4a56;
+  font-weight: 600;
 }
 
 .confetti-rain {
@@ -514,5 +582,83 @@
   100% {
     transform: translateX(var(--confetti-drift, 0)) translateY(110vh) rotate(720deg);
     opacity: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .calendar-desktop {
+    display: none;
+  }
+
+  .calendar-mobile-list {
+    display: grid;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .footer {
+    padding-bottom: calc(0.95rem + env(safe-area-inset-bottom));
+  }
+
+  .footer .container {
+    width: min(var(--container), calc(100% - 1rem));
+  }
+
+  .footer-text {
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+
+  .section-head {
+    align-items: stretch;
+  }
+
+  .min-w-120,
+  .min-w-150 {
+    min-width: 0;
+  }
+
+  .modal-overlay {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .modal {
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding-top: calc(0.85rem + env(safe-area-inset-top));
+  }
+
+  .modal-body {
+    flex: 1;
+    max-height: none;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom));
+  }
+
+  .modal-footer .btn {
+    min-width: 120px;
   }
 }
