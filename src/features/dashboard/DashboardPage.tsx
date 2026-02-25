@@ -5,15 +5,21 @@ import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { useAuth } from "../auth/AuthContext";
 import { getDailyMotivation } from "./dailyMotivation";
-import { getPlannedDaysThisWeek } from "../planner/plannerService";
+import { getNextPlannedMealThisWeek, getPlannedDaysThisWeek, type NextPlannedMealThisWeek } from "../planner/plannerService";
 
 export const DashboardPage = () => {
   const { displayName } = useAuth();
   const today = new Date();
   const dailyMotivation = getDailyMotivation(today);
   const [plannedDays, setPlannedDays] = useState<number>(0);
+  const [nextPlannedMeal, setNextPlannedMeal] = useState<NextPlannedMealThisWeek | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const formatPlannedDate = (dateLabel: string) => {
+    const [year, month, day] = dateLabel.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  };
 
   useEffect(() => {
     let active = true;
@@ -22,9 +28,10 @@ export const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const count = await getPlannedDaysThisWeek();
+        const [count, nextMeal] = await Promise.all([getPlannedDaysThisWeek(), getNextPlannedMealThisWeek()]);
         if (!active) return;
         setPlannedDays(count);
+        setNextPlannedMeal(nextMeal);
       } catch (err) {
         const value = err as { message?: string };
         if (!active) return;
@@ -69,7 +76,26 @@ export const DashboardPage = () => {
         </div>
         {loading ? <Loading label="Loading weekly summary..." /> : null}
         {error ? <p className="error-text">{error}</p> : null}
-        {!loading && !error ? <p>{plannedDays} day(s) currently planned.</p> : null}
+        {!loading && !error ? <p className="mb-04">{plannedDays} day(s) currently planned.</p> : null}
+        {!loading && !error ? (
+          nextPlannedMeal ? (
+            <p className="mb-055">
+              Next planned meal: {nextPlannedMeal.mealName} ({formatPlannedDate(nextPlannedMeal.plannedDate)})
+            </p>
+          ) : (
+            <p className="muted mb-055">Next planned meal: none yet this week.</p>
+          )
+        ) : null}
+        {!loading && !error ? (
+          <div className="inline-row">
+            <Link to="/recipes" className="btn btn-secondary text-none">
+              Go to recipes
+            </Link>
+            <Link to="/shopping-lists" className="btn btn-primary text-none">
+              View grocery list
+            </Link>
+          </div>
+        ) : null}
       </Card>
 
       <div className="grid-3">

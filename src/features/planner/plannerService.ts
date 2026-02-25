@@ -70,3 +70,61 @@ export const getPlannedDaysThisWeek = async (): Promise<number> => {
 
   return uniqueDays.size;
 };
+
+export interface NextPlannedMealThisWeek {
+  plannedDate: string;
+  mealName: string;
+}
+
+interface WeeklyPlanSummaryRow {
+  planned_date: string;
+  meal_name: string | null;
+  recipe_id: string | null;
+}
+
+export const getNextPlannedMealThisWeek = async (): Promise<NextPlannedMealThisWeek | null> => {
+  const now = new Date();
+  const start = format(now, "yyyy-MM-dd");
+  const end = format(endOfWeek(now, { weekStartsOn: 0 }), "yyyy-MM-dd");
+
+  const { data, error } = await supabase
+    .from("weekly_plans")
+    .select("planned_date, meal_name, recipe_id")
+    .eq("slot", "main")
+    .gte("planned_date", start)
+    .lte("planned_date", end)
+    .order("planned_date", { ascending: true });
+
+  if (error) throw error;
+
+  const plans = (data ?? []) as WeeklyPlanSummaryRow[];
+  const nextPlan = plans.find((item) => Boolean(item.meal_name?.trim()) || Boolean(item.recipe_id));
+  if (!nextPlan) return null;
+
+  if (nextPlan.meal_name?.trim()) {
+    return {
+      plannedDate: nextPlan.planned_date,
+      mealName: nextPlan.meal_name.trim()
+    };
+  }
+
+  if (!nextPlan.recipe_id) {
+    return {
+      plannedDate: nextPlan.planned_date,
+      mealName: "Meal planned"
+    };
+  }
+
+  const { data: recipe, error: recipeError } = await supabase
+    .from("recipes")
+    .select("title")
+    .eq("id", nextPlan.recipe_id)
+    .maybeSingle();
+
+  if (recipeError) throw recipeError;
+
+  return {
+    plannedDate: nextPlan.planned_date,
+    mealName: recipe?.title?.trim() || "Recipe selected"
+  };
+};
