@@ -122,6 +122,17 @@
   color: var(--muted);
 }
 
+.motivation-quote {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #7f4a53;
+  margin-bottom: 0.45rem;
+}
+
+.motivation-statement {
+  font-weight: 600;
+}
+
 .stack {
   display: grid;
   gap: 1rem;
@@ -344,6 +355,34 @@
   padding: 0.2rem 0.52rem;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.recipe-image-link {
+  display: block;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.recipe-image {
+  width: 100%;
+  max-height: 260px;
+  display: block;
+  object-fit: cover;
+}
+
+.recipe-image-preview {
+  width: 100%;
+  max-height: 220px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.recipe-image-meta {
+  word-break: break-word;
 }
 
 .empty-state {

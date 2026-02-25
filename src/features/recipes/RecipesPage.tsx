@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { RecipeWithIngredients } from "../../lib/dbTypes";
+import { normalizeExternalUrl } from "../../lib/url";
 import { deleteRecipe, listRecipes, saveRecipe } from "./recipesService";
 import { RecipeEditorModal, RecipeEditorValue } from "./RecipeEditorModal";
 
@@ -11,6 +12,7 @@ export const RecipesPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedImageKeys, setFailedImageKeys] = useState<Record<string, boolean>>({});
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState<RecipeWithIngredients | undefined>(undefined);
@@ -94,7 +96,7 @@ export const RecipesPage = () => {
 
         <div className="stack">
           {recipes.map((recipe) => (
-            <div className="card" key={recipe.id}>
+            <div className="card stack" key={recipe.id}>
               <div className="section-head mb-05">
                 <div>
                   <h3>{recipe.title}</h3>
@@ -110,16 +112,54 @@ export const RecipesPage = () => {
                 </div>
               </div>
 
+              {(() => {
+                const normalizedImageUrl = recipe.image_url ? normalizeExternalUrl(recipe.image_url) : null;
+                if (!normalizedImageUrl && recipe.image_url) {
+                  return <p className="error-text recipe-image-meta">Image URL is invalid. Edit recipe to fix the link.</p>;
+                }
+
+                if (!normalizedImageUrl) return null;
+
+                const imageKey = `${recipe.id}:${normalizedImageUrl}`;
+                const showImage = !failedImageKeys[imageKey];
+
+                return (
+                  <div className="stack">
+                    {showImage ? (
+                      <a
+                        href={normalizedImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="recipe-image-link"
+                        aria-label={`Open ${recipe.title} image`}
+                      >
+                        <img
+                          className="recipe-image"
+                          src={normalizedImageUrl}
+                          alt={recipe.title}
+                          loading="lazy"
+                          onError={() => setFailedImageKeys((prev) => ({ ...prev, [imageKey]: true }))}
+                        />
+                      </a>
+                    ) : null}
+                    <p className="muted recipe-image-meta">
+                      Image link:{" "}
+                      <a href={normalizedImageUrl} target="_blank" rel="noreferrer">
+                        {normalizedImageUrl}
+                      </a>
+                    </p>
+                  </div>
+                );
+              })()}
+
               {recipe.notes ? <p className="mb-055">{recipe.notes}</p> : null}
-              {recipe.image_url ? <p className="muted">Image: {recipe.image_url}</p> : null}
 
               {recipe.ingredients.length > 0 ? (
                 <div className="inline-row">
                   {recipe.ingredients.map((ingredient) => (
                     <span className="badge" key={ingredient.id}>
                       {ingredient.name}
-                      {ingredient.quantity ? ` ${ingredient.quantity}` : ""}
-                      {ingredient.unit ? ` ${ingredient.unit}` : ""}
+                      {ingredient.quantity ? ` (Qty: ${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ""})` : ""}
                     </span>
                   ))}
                 </div>

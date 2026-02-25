@@ -4,10 +4,13 @@ import { CalendarDays, ListChecks, Utensils } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { useAuth } from "../auth/AuthContext";
+import { getDailyMotivation } from "./dailyMotivation";
 import { getPlannedDaysThisWeek } from "../planner/plannerService";
 
 export const DashboardPage = () => {
   const { displayName } = useAuth();
+  const today = new Date();
+  const dailyMotivation = getDailyMotivation(today);
   const [plannedDays, setPlannedDays] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +55,16 @@ export const DashboardPage = () => {
         {loading ? <Loading label="Loading weekly summary..." /> : null}
         {error ? <p className="error-text">{error}</p> : null}
         {!loading && !error ? <p>{plannedDays} day(s) currently planned.</p> : null}
+      </Card>
+
+      <Card>
+        <div className="section-head mb-05">
+          <h2>Daily inspiration</h2>
+          <span className="badge">Today</span>
+        </div>
+        <p className="muted mb-05">{today.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
+        <p className="motivation-quote">"{dailyMotivation.quote}"</p>
+        <p className="motivation-statement">{dailyMotivation.encouragement}</p>
       </Card>
 
       <div className="grid-3">

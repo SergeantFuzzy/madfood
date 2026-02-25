@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { RecipeWithIngredients } from "../../lib/dbTypes";
+import { normalizeExternalUrl } from "../../lib/url";
 
 export interface EditableIngredient {
   name: string;
@@ -35,6 +36,7 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePreviewFailed, setImagePreviewFailed] = useState(false);
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([emptyIngredient()]);
 
   useEffect(() => {
@@ -53,6 +55,10 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
         : [emptyIngredient()]
     );
   }, [open, recipe]);
+
+  useEffect(() => {
+    setImagePreviewFailed(false);
+  }, [imageUrl, open]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -75,6 +81,8 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
       return next.length ? next : [emptyIngredient()];
     });
   };
+
+  const previewImageUrl = normalizeExternalUrl(imageUrl);
 
   return (
     <Modal
@@ -120,6 +128,30 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
           />
           <span className="help-text">Storage upload is scaffolded via `recipe-images` bucket in the service layer.</span>
         </label>
+
+        {previewImageUrl ? (
+          <div className="stack">
+            {!imagePreviewFailed ? (
+              <img
+                className="recipe-image-preview"
+                src={previewImageUrl}
+                alt="Recipe preview"
+                loading="lazy"
+                onError={() => setImagePreviewFailed(true)}
+              />
+            ) : (
+              <p className="error-text">Image preview failed to load for this URL.</p>
+            )}
+            <p className="muted recipe-image-meta">
+              Preview link:{" "}
+              <a href={previewImageUrl} target="_blank" rel="noreferrer">
+                {previewImageUrl}
+              </a>
+            </p>
+          </div>
+        ) : imageUrl.trim() ? (
+          <p className="error-text">Image URL looks invalid. Use a full URL like `https://...`</p>
+        ) : null}
 
         <div className="stack">
           <div className="section-head mb-0">
