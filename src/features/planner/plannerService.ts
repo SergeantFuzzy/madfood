@@ -82,6 +82,8 @@ interface WeeklyPlanSummaryRow {
   recipe_id: string | null;
 }
 
+const hasPlannedMeal = (item: WeeklyPlanSummaryRow) => Boolean(item.meal_name?.trim()) || Boolean(item.recipe_id);
+
 export const getNextPlannedMealThisWeek = async (): Promise<NextPlannedMealThisWeek | null> => {
   const now = new Date();
   const start = format(now, "yyyy-MM-dd");
@@ -98,7 +100,7 @@ export const getNextPlannedMealThisWeek = async (): Promise<NextPlannedMealThisW
   if (error) throw error;
 
   const plans = (data ?? []) as WeeklyPlanSummaryRow[];
-  const nextPlan = plans.find((item) => Boolean(item.meal_name?.trim()) || Boolean(item.recipe_id));
+  const nextPlan = plans.find((item) => hasPlannedMeal(item));
   if (!nextPlan) return null;
 
   if (nextPlan.meal_name?.trim()) {
@@ -127,4 +129,34 @@ export const getNextPlannedMealThisWeek = async (): Promise<NextPlannedMealThisW
     plannedDate: nextPlan.planned_date,
     mealName: recipe?.title?.trim() || "Recipe selected"
   };
+};
+
+export const getNextAvailablePlanningDateThisWeek = async (): Promise<string | null> => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endDate = endOfWeek(today, { weekStartsOn: 0 });
+  const start = format(today, "yyyy-MM-dd");
+  const end = format(endDate, "yyyy-MM-dd");
+
+  const { data, error } = await supabase
+    .from("weekly_plans")
+    .select("planned_date, meal_name, recipe_id")
+    .eq("slot", "main")
+    .gte("planned_date", start)
+    .lte("planned_date", end)
+    .order("planned_date", { ascending: true });
+
+  if (error) throw error;
+
+  const plans = (data ?? []) as WeeklyPlanSummaryRow[];
+  const plannedDates = new Set(plans.filter((item) => hasPlannedMeal(item)).map((item) => item.planned_date));
+  const cursor = new Date(today);
+
+  while (cursor <= endDate) {
+    const dateLabel = format(cursor, "yyyy-MM-dd");
+    if (!plannedDates.has(dateLabel)) return dateLabel;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return null;
 };

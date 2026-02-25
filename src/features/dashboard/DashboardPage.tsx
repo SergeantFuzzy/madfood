@@ -5,7 +5,12 @@ import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { useAuth } from "../auth/AuthContext";
 import { getDailyMotivation } from "./dailyMotivation";
-import { getNextPlannedMealThisWeek, getPlannedDaysThisWeek, type NextPlannedMealThisWeek } from "../planner/plannerService";
+import {
+  getNextAvailablePlanningDateThisWeek,
+  getNextPlannedMealThisWeek,
+  getPlannedDaysThisWeek,
+  type NextPlannedMealThisWeek
+} from "../planner/plannerService";
 
 export const DashboardPage = () => {
   const { displayName } = useAuth();
@@ -13,6 +18,8 @@ export const DashboardPage = () => {
   const dailyMotivation = getDailyMotivation(today);
   const [plannedDays, setPlannedDays] = useState<number>(0);
   const [nextPlannedMeal, setNextPlannedMeal] = useState<NextPlannedMealThisWeek | null>(null);
+  const [nextAvailablePlanningDate, setNextAvailablePlanningDate] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,10 +35,16 @@ export const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const [count, nextMeal] = await Promise.all([getPlannedDaysThisWeek(), getNextPlannedMealThisWeek()]);
+        const [count, nextMeal, nextAvailableDate] = await Promise.all([
+          getPlannedDaysThisWeek(),
+          getNextPlannedMealThisWeek(),
+          getNextAvailablePlanningDateThisWeek()
+        ]);
         if (!active) return;
         setPlannedDays(count);
         setNextPlannedMeal(nextMeal);
+        setNextAvailablePlanningDate(nextAvailableDate);
+        setLastUpdatedAt(new Date());
       } catch (err) {
         const value = err as { message?: string };
         if (!active) return;
@@ -88,13 +101,24 @@ export const DashboardPage = () => {
         ) : null}
         {!loading && !error ? (
           <div className="inline-row">
+            {!nextPlannedMeal ? (
+              <Link to={nextAvailablePlanningDate ? `/planner?date=${nextAvailablePlanningDate}` : "/planner"} className="btn btn-primary text-none">
+                Plan next meal
+              </Link>
+            ) : null}
             <Link to="/recipes" className="btn btn-secondary text-none">
               Go to recipes
             </Link>
-            <Link to="/shopping-lists" className="btn btn-primary text-none">
+            <Link to="/shopping-lists" className={["btn", nextPlannedMeal ? "btn-primary" : "btn-secondary", "text-none"].join(" ")}>
               View grocery list
             </Link>
           </div>
+        ) : null}
+        {!loading && !error && lastUpdatedAt ? (
+          <p className="muted mt-055">
+            Last updated {lastUpdatedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })} at{" "}
+            {lastUpdatedAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+          </p>
         ) : null}
       </Card>
 

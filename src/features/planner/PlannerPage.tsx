@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
@@ -13,7 +14,18 @@ const monthOptions = Array.from({ length: 12 }, (_, index) => index);
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 11 }, (_, index) => currentYear - 5 + index);
 
+const parsePlannerDateParam = (value: string | null): Date | null => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day);
+  const isValid = parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
+  return isValid ? parsed : null;
+};
+
 export const PlannerPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedDateParam = searchParams.get("date");
   const [monthDate, setMonthDate] = useState<Date>(startOfMonth(new Date()));
   const [plans, setPlans] = useState<WeeklyPlan[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -24,6 +36,7 @@ export const PlannerPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedRecipeId, setSelectedRecipeId] = useState("");
   const [mealName, setMealName] = useState("");
+  const [requestedPlannerDate, setRequestedPlannerDate] = useState<Date | null>(null);
 
   const plansByDate = useMemo<Record<string, WeeklyPlan>>(() => {
     return plans.reduce<Record<string, WeeklyPlan>>((acc, item) => {
@@ -52,10 +65,6 @@ export const PlannerPage = () => {
     }
   };
 
-  useEffect(() => {
-    refreshData();
-  }, [monthDate]);
-
   const openDayModal = (date: Date) => {
     const iso = format(date, "yyyy-MM-dd");
     const existing = plansByDate[iso];
@@ -65,11 +74,36 @@ export const PlannerPage = () => {
     setMealName(existing?.meal_name ?? "");
   };
 
+  useEffect(() => {
+    refreshData();
+  }, [monthDate]);
+
+  useEffect(() => {
+    const parsedDate = parsePlannerDateParam(requestedDateParam);
+    if (!parsedDate) return;
+
+    setRequestedPlannerDate(parsedDate);
+    setMonthDate(startOfMonth(parsedDate));
+  }, [requestedDateParam]);
+
   const closeDayModal = () => {
     setSelectedDate(null);
     setSelectedRecipeId("");
     setMealName("");
   };
+
+  useEffect(() => {
+    if (!requestedPlannerDate || loading) return;
+
+    openDayModal(requestedPlannerDate);
+    setRequestedPlannerDate(null);
+
+    if (searchParams.has("date")) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("date");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [loading, requestedPlannerDate, searchParams, setSearchParams, plansByDate]);
 
   const clearSelectedDayValues = () => {
     setSelectedRecipeId("");
