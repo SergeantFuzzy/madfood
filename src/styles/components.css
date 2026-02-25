@@ -459,6 +459,10 @@
   text-decoration: none;
 }
 
+.display-none {
+  display: none;
+}
+
 .grid-align-start {
   align-items: start;
 }

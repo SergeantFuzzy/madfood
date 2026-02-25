@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { RecipeWithIngredients } from "../../lib/dbTypes";
 import { normalizeExternalUrl } from "../../lib/url";
+import { uploadRecipeImage } from "./recipesService";
 
 export interface EditableIngredient {
   name: string;
@@ -37,7 +38,10 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
   const [notes, setNotes] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imagePreviewFailed, setImagePreviewFailed] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([emptyIngredient()]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +49,8 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
     setTitle(recipe?.title ?? "");
     setNotes(recipe?.notes ?? "");
     setImageUrl(recipe?.image_url ?? "");
+    setImageUploadError(null);
+    setUploadingImage(false);
     setIngredients(
       recipe?.ingredients.length
         ? recipe.ingredients.map((ingredient) => ({
@@ -73,6 +79,30 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
 
   const updateIngredient = (index: number, key: keyof EditableIngredient, value: string) => {
     setIngredients((prev) => prev.map((ingredient, i) => (i === index ? { ...ingredient, [key]: value } : ingredient)));
+  };
+
+  const onChooseImage = () => {
+    if (uploadingImage || saving) return;
+    fileInputRef.current?.click();
+  };
+
+  const onUploadImageFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setImageUploadError(null);
+    setUploadingImage(true);
+    try {
+      const uploadedUrl = await uploadRecipeImage(file);
+      setImageUrl(uploadedUrl);
+      setImagePreviewFailed(false);
+    } catch (err) {
+      const value = err as { message?: string };
+      setImageUploadError(value.message ?? "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const removeIngredient = (index: number) => {
@@ -126,7 +156,14 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
             onChange={(event) => setImageUrl(event.target.value)}
             placeholder="Optional image URL"
           />
-          <span className="help-text">Storage upload is scaffolded via `recipe-images` bucket in the service layer.</span>
+          <input ref={fileInputRef} type="file" accept="image/*" className="display-none" onChange={onUploadImageFile} />
+          <div className="inline-row">
+            <Button type="button" variant="secondary" onClick={onChooseImage} disabled={saving || uploadingImage}>
+              {uploadingImage ? "Uploading image..." : "Upload image"}
+            </Button>
+            <span className="help-text">Or paste a URL above.</span>
+          </div>
+          {imageUploadError ? <p className="error-text">{imageUploadError}</p> : null}
         </label>
 
         {previewImageUrl ? (
