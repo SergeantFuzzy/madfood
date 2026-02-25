@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, ListChecks, Utensils } from "lucide-react";
+import { CalendarDays, Flower2, ListChecks, Utensils } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { useAuth } from "../auth/AuthContext";
@@ -44,7 +44,12 @@ export const DashboardPage = () => {
     <div className="container stack">
       <Card>
         <div className="section-head mb-05">
-          <h2>Daily inspiration</h2>
+          <h2 className="daily-inspiration-title">
+            <span className="flower-icon-wrap" aria-hidden="true">
+              <Flower2 className="daily-inspiration-icon" size={16} />
+            </span>
+            Daily inspiration
+          </h2>
           <span className="badge">Today</span>
         </div>
         <p className="muted mb-05">{today.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
