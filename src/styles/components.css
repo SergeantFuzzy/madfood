@@ -43,8 +43,8 @@
 }
 
 .brand-logo {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 999px;
   display: block;
   object-fit: cover;
@@ -52,8 +52,8 @@
 
 /* Keep icon visible for clients still running cached header markup. */
 .brand-dot {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 999px;
   display: block;
   background: url("/madfood/logo-mark.png?v=20260225") center/cover no-repeat;
