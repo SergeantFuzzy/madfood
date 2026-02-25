@@ -21,10 +21,18 @@ export const savePlanForDay = async (payload: {
   planned_date: string;
   meal_name: string | null;
   recipe_id: string | null;
+  already_have_in_pantry?: boolean;
+  purchased?: boolean;
+  estimated_cost?: number;
+  is_favorite?: boolean;
 }) => {
   const cleanMeal = payload.meal_name?.trim() || null;
+  const alreadyHave = Boolean(payload.already_have_in_pantry);
+  const purchased = alreadyHave ? false : Boolean(payload.purchased);
+  const estimatedCost = Number.isFinite(payload.estimated_cost) ? Math.max(0, Number(payload.estimated_cost)) : 0;
+  const isFavorite = Boolean(payload.is_favorite);
 
-  if (!cleanMeal && !payload.recipe_id) {
+  if (!cleanMeal && !payload.recipe_id && !alreadyHave && !purchased && estimatedCost <= 0 && !isFavorite) {
     const { error } = await supabase
       .from("weekly_plans")
       .delete()
@@ -39,7 +47,11 @@ export const savePlanForDay = async (payload: {
       planned_date: payload.planned_date,
       slot: "main",
       meal_name: cleanMeal,
-      recipe_id: payload.recipe_id
+      recipe_id: payload.recipe_id,
+      already_have_in_pantry: alreadyHave,
+      purchased,
+      estimated_cost: estimatedCost,
+      is_favorite: isFavorite
     },
     {
       onConflict: "user_id,planned_date,slot"
@@ -159,4 +171,42 @@ export const getNextAvailablePlanningDateThisWeek = async (): Promise<string | n
   }
 
   return null;
+};
+
+export const getCurrentWeekEstimatedMealCostTotal = async (): Promise<number> => {
+  const now = new Date();
+  const start = format(startOfWeek(now, { weekStartsOn: 0 }), "yyyy-MM-dd");
+  const end = format(endOfWeek(now, { weekStartsOn: 0 }), "yyyy-MM-dd");
+
+  const { data, error } = await supabase
+    .from("weekly_plans")
+    .select("estimated_cost")
+    .eq("slot", "main")
+    .gte("planned_date", start)
+    .lte("planned_date", end);
+
+  if (error) throw error;
+
+  return (data ?? []).reduce((sum, item) => sum + Number(item.estimated_cost ?? 0), 0);
+};
+
+export interface FavoriteMealItem {
+  id: string;
+  planned_date: string;
+  meal_name: string | null;
+  recipe_id: string | null;
+  estimated_cost: number;
+}
+
+export const listFavoriteMeals = async (): Promise<FavoriteMealItem[]> => {
+  const { data, error } = await supabase
+    .from("weekly_plans")
+    .select("id, planned_date, meal_name, recipe_id, estimated_cost")
+    .eq("slot", "main")
+    .eq("is_favorite", true)
+    .order("planned_date", { ascending: true })
+    .limit(60);
+
+  if (error) throw error;
+  return (data ?? []) as FavoriteMealItem[];
 };

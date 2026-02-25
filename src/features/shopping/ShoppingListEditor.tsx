@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Button } from "../../components/ui/Button";
-import { GroceryListWithItems } from "../../lib/dbTypes";
+import { GroceryListItem, GroceryListWithItems } from "../../lib/dbTypes";
 import { formatCurrency } from "../../lib/format";
 import { deleteShoppingItem, renameShoppingList, saveShoppingItem } from "./shoppingService";
 
@@ -15,6 +15,7 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
   const [newItemName, setNewItemName] = useState("");
   const [newQuantity, setNewQuantity] = useState("1");
   const [newPrice, setNewPrice] = useState("0");
+  const [newAlreadyHave, setNewAlreadyHave] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,11 +48,13 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
         list_id: list.id,
         name: newItemName,
         quantity: Number(newQuantity),
-        price: Number(newPrice)
+        price: Number(newPrice),
+        already_have_in_pantry: newAlreadyHave
       });
       setNewItemName("");
       setNewQuantity("1");
       setNewPrice("0");
+      setNewAlreadyHave(false);
       await onRefresh();
     } catch (err) {
       const value = err as { message?: string };
@@ -61,23 +64,26 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
     }
   };
 
-  const updateItem = async (itemId: string, key: "quantity" | "price", value: number) => {
+  const updateItem = async (
+    item: GroceryListItem,
+    updates: Partial<Pick<GroceryListItem, "quantity" | "price" | "already_have_in_pantry" | "purchased" | "purchased_at">>
+  ) => {
     setSaving(true);
     onError(null);
 
-    const existing = list.items.find((item) => item.id === itemId);
-    if (!existing) {
-      setSaving(false);
-      return;
-    }
-
     try {
+      const nextAlreadyHave = updates.already_have_in_pantry ?? item.already_have_in_pantry;
+      const nextPurchased = nextAlreadyHave ? false : updates.purchased ?? item.purchased;
+
       await saveShoppingItem({
-        id: existing.id,
-        list_id: existing.list_id,
-        name: existing.name,
-        quantity: key === "quantity" ? value : existing.quantity,
-        price: key === "price" ? value : existing.price
+        id: item.id,
+        list_id: item.list_id,
+        name: item.name,
+        quantity: updates.quantity ?? item.quantity,
+        price: updates.price ?? item.price,
+        already_have_in_pantry: nextAlreadyHave,
+        purchased: nextPurchased,
+        purchased_at: nextPurchased ? updates.purchased_at ?? item.purchased_at : null
       });
       await onRefresh();
     } catch (err) {
@@ -150,6 +156,11 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
           />
         </label>
 
+        <label className="inline-row">
+          <input type="checkbox" checked={newAlreadyHave} onChange={(event) => setNewAlreadyHave(event.target.checked)} />
+          <span className="help-text">Already in pantry</span>
+        </label>
+
         <Button type="submit" loading={saving}>
           Add item
         </Button>
@@ -167,6 +178,32 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
               </Button>
             </div>
 
+            <div className="inline-row mb-055">
+              <label className="inline-row">
+                <input
+                  type="checkbox"
+                  checked={item.purchased}
+                  disabled={item.already_have_in_pantry}
+                  onChange={(event) =>
+                    updateItem(item, {
+                      purchased: event.target.checked,
+                      purchased_at: event.target.checked ? new Date().toISOString() : null
+                    })
+                  }
+                />
+                <span className="help-text">Purchased</span>
+              </label>
+
+              <label className="inline-row">
+                <input
+                  type="checkbox"
+                  checked={item.already_have_in_pantry}
+                  onChange={(event) => updateItem(item, { already_have_in_pantry: event.target.checked, purchased: false, purchased_at: null })}
+                />
+                <span className="help-text">Already in pantry</span>
+              </label>
+            </div>
+
             <div className="grid-2">
               <label className="field">
                 <span className="field-label">Quantity</span>
@@ -177,7 +214,7 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
                   min="0"
                   step="0.01"
                   defaultValue={item.quantity}
-                  onBlur={(event) => updateItem(item.id, "quantity", Number(event.target.value))}
+                  onBlur={(event) => updateItem(item, { quantity: Number(event.target.value) })}
                 />
               </label>
 
@@ -190,19 +227,21 @@ export const ShoppingListEditor = ({ list, onRefresh, onError }: ShoppingListEdi
                   min="0"
                   step="0.01"
                   defaultValue={item.price}
-                  onBlur={(event) => updateItem(item.id, "price", Number(event.target.value))}
+                  onBlur={(event) => updateItem(item, { price: Number(event.target.value) })}
                 />
               </label>
             </div>
 
             <p className="muted mt-055">
-              Line total: {formatCurrency(item.quantity * item.price)}
+              {item.already_have_in_pantry ? "From pantry" : "Line total"}: {formatCurrency(item.quantity * item.price)}
             </p>
           </div>
         ))}
       </div>
 
-      <h3>Total basket value: {formatCurrency(list.total)}</h3>
+      <h3>Need to buy total: {formatCurrency(list.to_buy_total)}</h3>
+      <p className="muted">Purchased total: {formatCurrency(list.purchased_total)}</p>
+      <p className="muted">All item value: {formatCurrency(list.total)}</p>
     </div>
   );
 };

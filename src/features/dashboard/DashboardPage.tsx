@@ -3,14 +3,17 @@ import { Link } from "react-router-dom";
 import { CalendarDays, Flower2, ListChecks, Utensils } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
+import { formatCurrency } from "../../lib/format";
 import { useAuth } from "../auth/AuthContext";
 import { getDailyMotivation } from "./dailyMotivation";
 import {
+  getCurrentWeekEstimatedMealCostTotal,
   getNextAvailablePlanningDateThisWeek,
   getNextPlannedMealThisWeek,
   getPlannedDaysThisWeek,
   type NextPlannedMealThisWeek
 } from "../planner/plannerService";
+import { getCurrentWeekSpendTotal } from "../shopping/shoppingService";
 
 export const DashboardPage = () => {
   const { displayName } = useAuth();
@@ -19,6 +22,8 @@ export const DashboardPage = () => {
   const [plannedDays, setPlannedDays] = useState<number>(0);
   const [nextPlannedMeal, setNextPlannedMeal] = useState<NextPlannedMealThisWeek | null>(null);
   const [nextAvailablePlanningDate, setNextAvailablePlanningDate] = useState<string | null>(null);
+  const [currentWeekSpend, setCurrentWeekSpend] = useState(0);
+  const [currentWeekMealEstimate, setCurrentWeekMealEstimate] = useState(0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,15 +40,19 @@ export const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const [count, nextMeal, nextAvailableDate] = await Promise.all([
+        const [count, nextMeal, nextAvailableDate, weekSpend, weekMealEstimate] = await Promise.all([
           getPlannedDaysThisWeek(),
           getNextPlannedMealThisWeek(),
-          getNextAvailablePlanningDateThisWeek()
+          getNextAvailablePlanningDateThisWeek(),
+          getCurrentWeekSpendTotal(),
+          getCurrentWeekEstimatedMealCostTotal()
         ]);
         if (!active) return;
         setPlannedDays(count);
         setNextPlannedMeal(nextMeal);
         setNextAvailablePlanningDate(nextAvailableDate);
+        setCurrentWeekSpend(weekSpend);
+        setCurrentWeekMealEstimate(weekMealEstimate);
         setLastUpdatedAt(new Date());
       } catch (err) {
         const value = err as { message?: string };
@@ -90,6 +99,8 @@ export const DashboardPage = () => {
         {loading ? <Loading label="Loading weekly summary..." /> : null}
         {error ? <p className="error-text">{error}</p> : null}
         {!loading && !error ? <p className="mb-04">{plannedDays} day(s) currently planned.</p> : null}
+        {!loading && !error ? <p className="mb-04">Current week spend: {formatCurrency(currentWeekSpend)}</p> : null}
+        {!loading && !error ? <p className="mb-04">Estimated planned meal cost: {formatCurrency(currentWeekMealEstimate)}</p> : null}
         {!loading && !error ? (
           nextPlannedMeal ? (
             <p className="mb-055">

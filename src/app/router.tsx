@@ -6,6 +6,8 @@ import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { UpdatePasswordPage } from "../features/auth/UpdatePasswordPage";
 import { useAuth } from "../features/auth/AuthContext";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
+import { FavoritesPage } from "../features/favorites/FavoritesPage";
+import { PantryPage } from "../features/pantry/PantryPage";
 import { PlannerPage } from "../features/planner/PlannerPage";
 import { RecipesPage } from "../features/recipes/RecipesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
@@ -59,6 +61,22 @@ export const router = createBrowserRouter(
           element: (
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "favorites",
+          element: (
+            <ProtectedRoute>
+              <FavoritesPage />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "pantry",
+          element: (
+            <ProtectedRoute>
+              <PantryPage />
             </ProtectedRoute>
           )
         },

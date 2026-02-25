@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Star } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -36,6 +37,10 @@ export const PlannerPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedRecipeId, setSelectedRecipeId] = useState("");
   const [mealName, setMealName] = useState("");
+  const [mealPurchased, setMealPurchased] = useState(false);
+  const [mealInPantry, setMealInPantry] = useState(false);
+  const [mealFavorite, setMealFavorite] = useState(false);
+  const [estimatedMealCost, setEstimatedMealCost] = useState("0");
   const [requestedPlannerDate, setRequestedPlannerDate] = useState<Date | null>(null);
 
   const plansByDate = useMemo<Record<string, WeeklyPlan>>(() => {
@@ -72,6 +77,10 @@ export const PlannerPage = () => {
     setSelectedDate(date);
     setSelectedRecipeId(existing?.recipe_id ?? "");
     setMealName(existing?.meal_name ?? "");
+    setMealPurchased(Boolean(existing?.purchased));
+    setMealInPantry(Boolean(existing?.already_have_in_pantry));
+    setMealFavorite(Boolean(existing?.is_favorite));
+    setEstimatedMealCost(existing ? String(existing.estimated_cost ?? 0) : "0");
   };
 
   useEffect(() => {
@@ -90,6 +99,10 @@ export const PlannerPage = () => {
     setSelectedDate(null);
     setSelectedRecipeId("");
     setMealName("");
+    setMealPurchased(false);
+    setMealInPantry(false);
+    setMealFavorite(false);
+    setEstimatedMealCost("0");
   };
 
   useEffect(() => {
@@ -108,6 +121,10 @@ export const PlannerPage = () => {
   const clearSelectedDayValues = () => {
     setSelectedRecipeId("");
     setMealName("");
+    setMealPurchased(false);
+    setMealInPantry(false);
+    setMealFavorite(false);
+    setEstimatedMealCost("0");
   };
 
   const onSaveDay = async (event: FormEvent) => {
@@ -124,7 +141,11 @@ export const PlannerPage = () => {
       await savePlanForDay({
         planned_date: format(selectedDate, "yyyy-MM-dd"),
         meal_name: resolvedMealName,
-        recipe_id: selectedRecipeId || null
+        recipe_id: selectedRecipeId || null,
+        purchased: mealPurchased,
+        already_have_in_pantry: mealInPantry,
+        estimated_cost: Number(estimatedMealCost),
+        is_favorite: mealFavorite
       });
 
       closeDayModal();
@@ -248,6 +269,53 @@ export const PlannerPage = () => {
             />
             <span className="help-text">Leave empty to use selected recipe title, or clear all fields to remove plan.</span>
           </label>
+
+          <label className="field">
+            <span className="field-label">Estimated meal cost (USD)</span>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={estimatedMealCost}
+              onChange={(event) => setEstimatedMealCost(event.target.value)}
+            />
+          </label>
+
+          <div className="inline-row">
+            <button
+              type="button"
+              className={["icon-button", "star-toggle", mealFavorite ? "active" : ""].join(" ")}
+              onClick={() => setMealFavorite((prev) => !prev)}
+              aria-label={mealFavorite ? "Unfavorite meal" : "Favorite meal"}
+            >
+              <Star size={18} />
+              <span className="help-text">{mealFavorite ? "Favorited" : "Mark favorite"}</span>
+            </button>
+
+            <label className="inline-row">
+              <input
+                type="checkbox"
+                checked={mealInPantry}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setMealInPantry(next);
+                  if (next) setMealPurchased(false);
+                }}
+              />
+              <span className="help-text">Already covered by pantry</span>
+            </label>
+
+            <label className="inline-row">
+              <input
+                type="checkbox"
+                checked={mealPurchased}
+                disabled={mealInPantry}
+                onChange={(event) => setMealPurchased(event.target.checked)}
+              />
+              <span className="help-text">Purchased for this meal</span>
+            </label>
+          </div>
         </form>
       </Modal>
     </div>

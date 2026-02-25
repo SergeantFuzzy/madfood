@@ -1,9 +1,10 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { Star } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { RecipeWithIngredients } from "../../lib/dbTypes";
 import { normalizeExternalUrl } from "../../lib/url";
-import { uploadRecipeImage } from "./recipesService";
+import { importRecipeFromUrl, uploadRecipeImage } from "./recipesService";
 
 export interface EditableIngredient {
   name: string;
@@ -16,6 +17,9 @@ export interface RecipeEditorValue {
   title: string;
   notes: string;
   image_url: string;
+  prep_time_minutes: number | null;
+  cook_time_minutes: number | null;
+  is_favorite: boolean;
   ingredients: EditableIngredient[];
 }
 
@@ -37,9 +41,15 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [prepTimeMinutes, setPrepTimeMinutes] = useState("");
+  const [cookTimeMinutes, setCookTimeMinutes] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
   const [imagePreviewFailed, setImagePreviewFailed] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importingRecipe, setImportingRecipe] = useState(false);
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([emptyIngredient()]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -49,8 +59,14 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
     setTitle(recipe?.title ?? "");
     setNotes(recipe?.notes ?? "");
     setImageUrl(recipe?.image_url ?? "");
+    setPrepTimeMinutes(recipe?.prep_time_minutes != null ? String(recipe.prep_time_minutes) : "");
+    setCookTimeMinutes(recipe?.cook_time_minutes != null ? String(recipe.cook_time_minutes) : "");
+    setIsFavorite(Boolean(recipe?.is_favorite));
     setImageUploadError(null);
     setUploadingImage(false);
+    setImportUrl("");
+    setImportError(null);
+    setImportingRecipe(false);
     setIngredients(
       recipe?.ingredients.length
         ? recipe.ingredients.map((ingredient) => ({
@@ -73,6 +89,9 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
       title,
       notes,
       image_url: imageUrl,
+      prep_time_minutes: prepTimeMinutes.trim() ? Number(prepTimeMinutes) : null,
+      cook_time_minutes: cookTimeMinutes.trim() ? Number(cookTimeMinutes) : null,
+      is_favorite: isFavorite,
       ingredients
     });
   };
@@ -102,6 +121,39 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
       setImageUploadError(value.message ?? "Failed to upload image");
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const onImportRecipe = async () => {
+    const url = importUrl.trim();
+    if (!url) {
+      setImportError("Enter a recipe URL to import.");
+      return;
+    }
+
+    setImportingRecipe(true);
+    setImportError(null);
+    try {
+      const imported = await importRecipeFromUrl(url);
+      setTitle(imported.title || title);
+      setNotes(imported.notes ?? "");
+      setImageUrl(imported.image_url ?? "");
+      setPrepTimeMinutes(imported.prep_time_minutes != null ? String(imported.prep_time_minutes) : "");
+      setCookTimeMinutes(imported.cook_time_minutes != null ? String(imported.cook_time_minutes) : "");
+      setIngredients(
+        imported.ingredients.length
+          ? imported.ingredients.map((ingredient) => ({
+              name: ingredient.name,
+              quantity: ingredient.quantity ?? "",
+              unit: ingredient.unit ?? ""
+            }))
+          : [emptyIngredient()]
+      );
+    } catch (err) {
+      const value = err as { message?: string };
+      setImportError(value.message ?? "Failed to import recipe from URL");
+    } finally {
+      setImportingRecipe(false);
     }
   };
 
@@ -145,6 +197,60 @@ export const RecipeEditorModal = ({ open, recipe, saving, onClose, onSave }: Rec
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Optional instructions or notes"
           />
+        </label>
+
+        <div className="grid-3">
+          <label className="field">
+            <span className="field-label">Prep time (minutes)</span>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              step="1"
+              value={prepTimeMinutes}
+              onChange={(event) => setPrepTimeMinutes(event.target.value)}
+              placeholder="15"
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Cook time (minutes)</span>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              step="1"
+              value={cookTimeMinutes}
+              onChange={(event) => setCookTimeMinutes(event.target.value)}
+              placeholder="30"
+            />
+          </label>
+
+          <label className="inline-row">
+            <input type="checkbox" checked={isFavorite} onChange={(event) => setIsFavorite(event.target.checked)} />
+            <span className="help-text inline-row">
+              <Star size={16} />
+              Favorite recipe
+            </span>
+          </label>
+        </div>
+
+        <label className="field">
+          <span className="field-label">Import recipe from URL</span>
+          <div className="inline-row">
+            <input
+              className="input"
+              type="url"
+              value={importUrl}
+              onChange={(event) => setImportUrl(event.target.value)}
+              placeholder="https://example.com/recipe"
+            />
+            <Button type="button" variant="secondary" onClick={onImportRecipe} disabled={importingRecipe || saving}>
+              {importingRecipe ? "Importing..." : "Import recipe"}
+            </Button>
+          </div>
+          <span className="help-text">Supports pages with standard Recipe JSON-LD metadata.</span>
+          {importError ? <p className="error-text">{importError}</p> : null}
         </label>
 
         <label className="field">

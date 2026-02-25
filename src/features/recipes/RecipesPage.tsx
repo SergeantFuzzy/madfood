@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Loading } from "../../components/ui/Loading";
 import { RecipeWithIngredients } from "../../lib/dbTypes";
 import { normalizeExternalUrl } from "../../lib/url";
-import { deleteRecipe, listRecipes, saveRecipe } from "./recipesService";
+import { deleteRecipe, listRecipes, saveRecipe, toggleRecipeFavorite } from "./recipesService";
 import { RecipeEditorModal, RecipeEditorValue } from "./RecipeEditorModal";
 
 export const RecipesPage = () => {
+  const [searchParams] = useSearchParams();
+  const focusedRecipeId = searchParams.get("recipeId");
   const [recipes, setRecipes] = useState<RecipeWithIngredients[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +38,19 @@ export const RecipesPage = () => {
   useEffect(() => {
     refreshRecipes();
   }, []);
+
+  useEffect(() => {
+    if (!focusedRecipeId || loading) return;
+    const element = document.getElementById(`recipe-${focusedRecipeId}`);
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [focusedRecipeId, loading, recipes]);
+
+  const displayedRecipes = useMemo(() => {
+    if (!focusedRecipeId) return recipes;
+    const focused = recipes.find((recipe) => recipe.id === focusedRecipeId);
+    if (!focused) return recipes;
+    return [focused, ...recipes.filter((recipe) => recipe.id !== focusedRecipeId)];
+  }, [focusedRecipeId, recipes]);
 
   const openCreate = () => {
     setActiveRecipe(undefined);
@@ -76,6 +93,21 @@ export const RecipesPage = () => {
     }
   };
 
+  const onToggleFavorite = async (recipe: RecipeWithIngredients) => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      await toggleRecipeFavorite(recipe.id, !recipe.is_favorite);
+      await refreshRecipes();
+    } catch (err) {
+      const maybeError = err as { message?: string };
+      setError(maybeError.message ?? "Failed to update favorite");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="container stack">
       <div className="page-header">
@@ -95,14 +127,32 @@ export const RecipesPage = () => {
         {!loading && recipes.length === 0 ? <p className="empty-state">No recipes yet. Add your first one.</p> : null}
 
         <div className="stack">
-          {recipes.map((recipe) => (
-            <div className="card stack" key={recipe.id}>
+          {displayedRecipes.map((recipe) => (
+            <div id={`recipe-${recipe.id}`} className={["card", "stack", focusedRecipeId === recipe.id ? "focused-recipe-card" : ""].join(" ").trim()} key={recipe.id}>
               <div className="section-head mb-05">
                 <div>
-                  <h3>{recipe.title}</h3>
+                  <h3 className="inline-row">
+                    {recipe.title}
+                    {recipe.is_favorite ? <Star size={16} className="favorite-star-filled" /> : null}
+                  </h3>
                   <p className="muted">{recipe.ingredients.length} ingredient(s)</p>
+                  {recipe.prep_time_minutes || recipe.cook_time_minutes ? (
+                    <p className="muted">
+                      {recipe.prep_time_minutes ? `Prep ${recipe.prep_time_minutes}m` : null}
+                      {recipe.prep_time_minutes && recipe.cook_time_minutes ? " | " : null}
+                      {recipe.cook_time_minutes ? `Cook ${recipe.cook_time_minutes}m` : null}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="inline-row">
+                  <button
+                    type="button"
+                    className={["icon-button", "star-toggle", recipe.is_favorite ? "active" : ""].join(" ")}
+                    onClick={() => onToggleFavorite(recipe)}
+                    aria-label={recipe.is_favorite ? "Remove favorite" : "Mark as favorite"}
+                  >
+                    <Star size={18} />
+                  </button>
                   <Button variant="secondary" onClick={() => openEdit(recipe)}>
                     Edit
                   </Button>

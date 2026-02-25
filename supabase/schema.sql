@@ -17,6 +17,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   display_name text,
+  phone_number text,
+  text_reminders_enabled boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -27,6 +29,9 @@ create table if not exists public.recipes (
   title text not null,
   notes text,
   image_url text,
+  prep_time_minutes int,
+  cook_time_minutes int,
+  is_favorite boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -65,6 +70,9 @@ create table if not exists public.grocery_list_items (
   name text not null,
   quantity numeric(12, 2) not null default 1,
   price numeric(12, 2) not null default 0,
+  already_have_in_pantry boolean not null default false,
+  purchased boolean not null default false,
+  purchased_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -76,19 +84,53 @@ create table if not exists public.weekly_plans (
   slot text not null default 'main',
   meal_name text,
   recipe_id uuid references public.recipes(id) on delete set null,
+  already_have_in_pantry boolean not null default false,
+  purchased boolean not null default false,
+  estimated_cost numeric(12, 2) not null default 0,
+  is_favorite boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   constraint weekly_plans_user_id_planned_date_slot_key unique (user_id, planned_date, slot)
 );
 
+create table if not exists public.pantry_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null,
+  quantity numeric(12, 2) not null default 0,
+  unit text,
+  estimated_price numeric(12, 2) not null default 0,
+  in_stock boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.profiles add column if not exists phone_number text;
+alter table public.profiles add column if not exists text_reminders_enabled boolean not null default false;
+alter table public.grocery_list_items add column if not exists already_have_in_pantry boolean not null default false;
+alter table public.grocery_list_items add column if not exists purchased boolean not null default false;
+alter table public.grocery_list_items add column if not exists purchased_at timestamptz;
+alter table public.recipes add column if not exists prep_time_minutes int;
+alter table public.recipes add column if not exists cook_time_minutes int;
+alter table public.recipes add column if not exists is_favorite boolean not null default false;
+alter table public.weekly_plans add column if not exists already_have_in_pantry boolean not null default false;
+alter table public.weekly_plans add column if not exists purchased boolean not null default false;
+alter table public.weekly_plans add column if not exists estimated_cost numeric(12, 2) not null default 0;
+alter table public.weekly_plans add column if not exists is_favorite boolean not null default false;
+
 create index if not exists idx_recipes_user_id on public.recipes(user_id);
+create index if not exists idx_recipes_is_favorite on public.recipes(user_id, is_favorite);
 create index if not exists idx_recipe_ingredients_user_id on public.recipe_ingredients(user_id);
 create index if not exists idx_recipe_ingredients_recipe_id on public.recipe_ingredients(recipe_id);
 create index if not exists idx_groceries_user_id on public.groceries(user_id);
 create index if not exists idx_grocery_lists_user_id on public.grocery_lists(user_id);
 create index if not exists idx_grocery_list_items_user_id on public.grocery_list_items(user_id);
 create index if not exists idx_grocery_list_items_list_id on public.grocery_list_items(list_id);
+create index if not exists idx_grocery_list_items_purchased_at on public.grocery_list_items(purchased_at);
 create index if not exists idx_weekly_plans_user_id_date on public.weekly_plans(user_id, planned_date);
+create index if not exists idx_weekly_plans_is_favorite on public.weekly_plans(user_id, is_favorite);
+create index if not exists idx_pantry_items_user_id on public.pantry_items(user_id);
+create index if not exists idx_pantry_items_in_stock on public.pantry_items(user_id, in_stock);
 
 drop trigger if exists trg_profiles_set_updated_at on public.profiles;
 create trigger trg_profiles_set_updated_at
@@ -113,6 +155,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists trg_weekly_plans_set_updated_at on public.weekly_plans;
 create trigger trg_weekly_plans_set_updated_at
 before update on public.weekly_plans
+for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_pantry_items_set_updated_at on public.pantry_items;
+create trigger trg_pantry_items_set_updated_at
+before update on public.pantry_items
 for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -141,6 +188,7 @@ alter table public.groceries enable row level security;
 alter table public.grocery_lists enable row level security;
 alter table public.grocery_list_items enable row level security;
 alter table public.weekly_plans enable row level security;
+alter table public.pantry_items enable row level security;
 
 drop policy if exists "Profiles select own" on public.profiles;
 create policy "Profiles select own"
@@ -314,6 +362,31 @@ with check (auth.uid() = user_id);
 drop policy if exists "Weekly plans delete own" on public.weekly_plans;
 create policy "Weekly plans delete own"
 on public.weekly_plans for delete
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "Pantry items select own" on public.pantry_items;
+create policy "Pantry items select own"
+on public.pantry_items for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "Pantry items insert own" on public.pantry_items;
+create policy "Pantry items insert own"
+on public.pantry_items for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+drop policy if exists "Pantry items update own" on public.pantry_items;
+create policy "Pantry items update own"
+on public.pantry_items for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "Pantry items delete own" on public.pantry_items;
+create policy "Pantry items delete own"
+on public.pantry_items for delete
 to authenticated
 using (auth.uid() = user_id);
 

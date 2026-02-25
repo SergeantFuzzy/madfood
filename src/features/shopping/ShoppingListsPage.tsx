@@ -120,7 +120,7 @@ export const ShoppingListsPage = () => {
               >
                 <h3>{list.name}</h3>
                 <p className="muted">
-                  {list.items.length} item(s) | ${list.total.toFixed(2)}
+                  {list.items.length} item(s) | Need: ${list.to_buy_total.toFixed(2)} | Purchased: ${list.purchased_total.toFixed(2)}
                 </p>
               </button>
             ))}
