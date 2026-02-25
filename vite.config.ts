@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "pwa-192.png", "pwa-512.png"],
+      includeAssets: ["favicon.svg", "favicon.png", "apple-touch-icon.png", "logo-mark.png", "pwa-192.png", "pwa-512.png"],
       manifest: {
         name: "MadFood",
         short_name: "MadFood",

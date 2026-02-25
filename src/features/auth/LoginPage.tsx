@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { isSupabaseConfigured } from "../../lib/env";
+import { InstallAppCard } from "../pwa/InstallAppCard";
 import { useAuth } from "./AuthContext";
 import { signInWithEmail, signUpWithEmail } from "./authService";
 
@@ -31,6 +32,8 @@ export const LoginPage = () => {
         await signInWithEmail(email, password);
       } else {
         await signUpWithEmail(email, password);
+        setEmail("");
+        setPassword("");
         setMessage("Account created. Check your email if confirmation is enabled.");
       }
     } catch (err) {
@@ -52,6 +55,7 @@ export const LoginPage = () => {
           <p className="error-text">Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` to use auth.</p>
         </Card>
       ) : null}
+      <InstallAppCard className="mb-1" />
       <Card className="max-w-520">
         <form className="stack" onSubmit={onSubmit}>
           <div className="section-head mb-0">

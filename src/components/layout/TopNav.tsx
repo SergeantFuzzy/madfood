@@ -9,6 +9,8 @@ const navItems = [
   { to: "/settings", label: "Settings" }
 ];
 
+const logoSrc = `${import.meta.env.BASE_URL}logo-mark.png`;
+
 export const TopNav = () => {
   const { user } = useAuth();
 
@@ -16,7 +18,7 @@ export const TopNav = () => {
     <header className="topnav">
       <div className="container topnav-row">
         <Link to={user ? "/dashboard" : "/login"} className="brand" aria-label="MadFood home">
-          <span className="brand-dot" />
+          <img src={logoSrc} className="brand-logo" alt="" aria-hidden="true" />
           <span>MadFood</span>
         </Link>
 

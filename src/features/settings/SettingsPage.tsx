@@ -4,6 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { useAuth } from "../auth/AuthContext";
 import { signOut } from "../auth/authService";
+import { InstallAppCard } from "../pwa/InstallAppCard";
 import { getProfile, upsertProfile } from "./settingsService";
 
 export const SettingsPage = () => {
@@ -60,6 +61,8 @@ export const SettingsPage = () => {
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">Manage profile details and sign out.</p>
       </div>
+
+      <InstallAppCard />
 
       <Card className="max-w-620">
         <form className="stack" onSubmit={onSaveProfile}>

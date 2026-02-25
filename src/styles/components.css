@@ -40,11 +40,12 @@
   letter-spacing: 0.2px;
 }
 
-.brand-dot {
-  width: 0.9rem;
-  height: 0.9rem;
+.brand-logo {
+  width: 1.2rem;
+  height: 1.2rem;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, #f4d7dc, var(--accent));
+  display: block;
+  object-fit: cover;
 }
 
 .nav-links {
