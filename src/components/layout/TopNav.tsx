@@ -9,7 +9,7 @@ const navItems = [
   { to: "/settings", label: "Settings" }
 ];
 
-const logoSrc = `${import.meta.env.BASE_URL}logo-mark.png`;
+const logoSrc = `${import.meta.env.BASE_URL}logo-mark.png?v=20260225`;
 
 export const TopNav = () => {
   const { user } = useAuth();

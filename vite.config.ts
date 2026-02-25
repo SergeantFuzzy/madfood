@@ -20,17 +20,17 @@ export default defineConfig({
         start_url: "/madfood/",
         icons: [
           {
-            src: "pwa-192.png",
+            src: "pwa-192.png?v=20260225",
             sizes: "192x192",
             type: "image/png"
           },
           {
-            src: "pwa-512.png",
+            src: "pwa-512.png?v=20260225",
             sizes: "512x512",
             type: "image/png"
           },
           {
-            src: "pwa-512.png",
+            src: "pwa-512.png?v=20260225",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable"

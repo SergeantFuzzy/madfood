@@ -48,6 +48,15 @@
   object-fit: cover;
 }
 
+/* Keep icon visible for clients still running cached header markup. */
+.brand-dot {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  display: block;
+  background: url("/madfood/logo-mark.png?v=20260225") center/cover no-repeat;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -177,6 +186,17 @@
 .btn-danger {
   background: var(--danger);
   color: white;
+}
+
+.btn-install-cute {
+  background: linear-gradient(140deg, #f9b5d4 0%, #f28ab8 45%, #e86aa8 100%);
+  border-color: #db629b;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(232, 106, 168, 0.3);
+}
+
+.btn-install-cute:hover {
+  filter: brightness(1.03);
 }
 
 .field {
@@ -461,4 +481,38 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.confetti-rain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10vh;
+  opacity: 0.96;
+  border-radius: 3px;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+.confetti-piece.round {
+  border-radius: 999px;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateX(0) translateY(-12vh) rotate(0deg);
+    opacity: 0.98;
+  }
+
+  100% {
+    transform: translateX(var(--confetti-drift, 0)) translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
 }
