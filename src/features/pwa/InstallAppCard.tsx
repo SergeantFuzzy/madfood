@@ -1,11 +1,13 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-}
+import {
+  BeforeInstallPromptEvent,
+  clearDeferredInstallPrompt,
+  getDeferredInstallPrompt,
+  subscribeAppInstalled,
+  subscribeDeferredInstallPrompt
+} from "./installPromptStore";
 
 type NavigatorWithStandalone = Navigator & { standalone?: boolean };
 interface InstallAppCardProps {
@@ -22,7 +24,10 @@ interface ConfettiPiece {
   round: boolean;
 }
 
-const isMobileUserAgent = (value: string) => /Android|iPhone|iPad|iPod/i.test(value);
+const isMobileUserAgent = (value: string, maxTouchPoints: number) =>
+  /Android|iPhone|iPad|iPod/i.test(value) || (/Macintosh/i.test(value) && maxTouchPoints > 1);
+const isIosUserAgent = (value: string, maxTouchPoints: number) =>
+  /iPhone|iPad|iPod/i.test(value) || (/Macintosh/i.test(value) && maxTouchPoints > 1);
 const confettiColors = ["#f7accd", "#f28ab8", "#ec6da7", "#f9c6de", "#ffdfec"];
 
 export const InstallAppCard = ({ className }: InstallAppCardProps) => {
@@ -35,7 +40,9 @@ export const InstallAppCard = ({ className }: InstallAppCardProps) => {
   const confettiTimerRef = useRef<number | null>(null);
 
   const userAgent = typeof window === "undefined" ? "" : window.navigator.userAgent;
-  const isMobile = useMemo(() => isMobileUserAgent(userAgent), [userAgent]);
+  const maxTouchPoints = typeof window === "undefined" ? 0 : window.navigator.maxTouchPoints;
+  const isMobile = useMemo(() => isMobileUserAgent(userAgent, maxTouchPoints), [maxTouchPoints, userAgent]);
+  const isIos = useMemo(() => isIosUserAgent(userAgent, maxTouchPoints), [maxTouchPoints, userAgent]);
   const confettiPieces = useMemo<ConfettiPiece[]>(
     () =>
       Array.from({ length: 34 }, (_, index) => ({
@@ -60,25 +67,28 @@ export const InstallAppCard = ({ className }: InstallAppCardProps) => {
       setIsInstalled(standaloneDisplay || standaloneIos);
     };
 
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-    };
-
-    const handleInstalled = () => {
-      setDeferredPrompt(null);
-      setIsInstalled(true);
-      setStatusMessage("MadFood is installed on your device.");
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        syncInstallState();
+      }
     };
 
     syncInstallState();
+    setDeferredPrompt(getDeferredInstallPrompt());
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt as EventListener);
-    window.addEventListener("appinstalled", handleInstalled);
+    const unsubscribePrompt = subscribeDeferredInstallPrompt((event) => setDeferredPrompt(event));
+    const unsubscribeInstalled = subscribeAppInstalled(() => {
+      setIsInstalled(true);
+      setStatusMessage("MadFood is installed on your device.");
+    });
 
+    window.addEventListener("focus", syncInstallState);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt as EventListener);
-      window.removeEventListener("appinstalled", handleInstalled);
+      unsubscribePrompt();
+      unsubscribeInstalled();
+      window.removeEventListener("focus", syncInstallState);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [isMobile]);
 
@@ -101,21 +111,32 @@ export const InstallAppCard = ({ className }: InstallAppCardProps) => {
   };
 
   const onInstall = async () => {
-    launchConfetti();
-    if (!deferredPrompt) return;
-    setInstalling(true);
     setStatusMessage(null);
+
+    if (!deferredPrompt) {
+      if (isIos) {
+        setStatusMessage("On iPhone/iPad, tap Share in your browser, then tap Add to Home Screen.");
+      } else {
+        setStatusMessage("Open your browser menu and tap Install app or Add to Home screen.");
+      }
+      return;
+    }
+
+    setInstalling(true);
 
     try {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === "accepted") {
+        launchConfetti();
         setStatusMessage("Install started. You can open MadFood from your home screen.");
       } else {
         setStatusMessage("Install dismissed. You can try again anytime.");
       }
+    } catch {
+      setStatusMessage("Install prompt could not be opened. Try again from your browser menu.");
     } finally {
-      setDeferredPrompt(null);
+      clearDeferredInstallPrompt();
       setInstalling(false);
     }
   };
@@ -133,6 +154,9 @@ export const InstallAppCard = ({ className }: InstallAppCardProps) => {
             Install on my phone
           </Button>
         </div>
+        {!deferredPrompt && isIos ? (
+          <p className="help-text">iPhone and iPad require manual install from the Share menu.</p>
+        ) : null}
 
         {statusMessage ? <p className="help-text">{statusMessage}</p> : null}
       </div>
